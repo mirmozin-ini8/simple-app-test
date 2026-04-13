@@ -1,4 +1,4 @@
-# dummy-app
+# simple-app-test
 
 A minimal React + Go application used to demonstrate and test CI/CD pipeline patterns with Playwright and GitHub Actions.
 
