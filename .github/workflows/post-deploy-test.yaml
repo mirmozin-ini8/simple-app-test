@@ -1,0 +1,44 @@
+name: Post-Deploy Tests
+
+on:
+  workflow_run:
+    workflows: ["Build and Deploy"]
+    types:
+      - completed
+
+jobs:
+  test:
+    name: Run Playwright Tests Against Cluster
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: tests/playwright
+        run: npm install
+
+      - name: Install Playwright browsers
+        working-directory: tests/playwright
+        run: npx playwright install chromium --with-deps
+
+      - name: Run Playwright tests
+        working-directory: tests/playwright
+        env:
+          TEST_URL: ${{ secrets.K3S_URL }}
+        run: npx playwright test
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: post-deploy-playwright-report
+          path: tests/playwright/playwright-report/
+          retention-days: 7
