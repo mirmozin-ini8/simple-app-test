@@ -1,0 +1,5 @@
+frontend/node_modules
+tests/playwright/node_modules
+tests/playwright/playwright-report
+tests/playwright/test-results
+.env
