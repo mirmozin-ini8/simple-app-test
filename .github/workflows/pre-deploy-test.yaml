@@ -1,17 +1,14 @@
-name: Post-Deploy Tests
+name: Pre-Deploy Tests
 
 on:
-  workflow_run:
-    workflows: ["Build and Deploy"]
-    types:
-      - completed
+  schedule:
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
   test:
-    name: Run Playwright Tests Against Cluster
+    name: Run Playwright Tests Against Live URL
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout code
@@ -40,6 +37,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: post-deploy-playwright-report
+          name: pre-deploy-playwright-report
           path: tests/playwright/playwright-report/
           retention-days: 7

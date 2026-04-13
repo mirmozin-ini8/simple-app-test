@@ -1,0 +1,74 @@
+name: Compose Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Playwright Tests Against Docker Compose
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and start containers
+        run: docker compose up --build --detach
+
+      - name: Wait for backend health check
+        run: |
+          echo "Waiting for backend..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/health; then
+              echo "Backend is up"
+              break
+            fi
+            echo "Attempt $i failed, retrying..."
+            sleep 3
+          done
+
+      - name: Wait for frontend
+        run: |
+          echo "Waiting for frontend..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:80; then
+              echo "Frontend is up"
+              break
+            fi
+            echo "Attempt $i failed, retrying..."
+            sleep 3
+          done
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: tests/playwright
+        run: npm install
+
+      - name: Install Playwright browsers
+        working-directory: tests/playwright
+        run: npx playwright install chromium --with-deps
+
+      - name: Run Playwright tests
+        working-directory: tests/playwright
+        env:
+          TEST_URL: http://localhost:80
+        run: npx playwright test
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-playwright-report
+          path: tests/playwright/playwright-report/
+          retention-days: 7
+
+      - name: Tear down containers
+        if: always()
+        run: docker compose down
